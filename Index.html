@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Inter, Arial, sans-serif; background: #111; color: #f4f4f4; margin: 0; }
+    main { max-width: 560px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 1.4rem; margin: 0 0 4px; }
+    .sub { color: #aaa; margin-bottom: 20px; }
+    label { display: block; margin: 14px 0 6px; font-size: 0.9rem; }
+    input, select, button { width: 100%; box-sizing: border-box; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #1c1c1c; color: #fff; font-size: 1rem; }
+    button { background: #c8102e; border: 0; font-weight: 700; margin-top: 18px; cursor: pointer; }
+    button:disabled { opacity: 0.5; }
+    .msg { margin-top: 14px; }
+    .ok { color: #7dffa1; }
+    .err { color: #ff8b8b; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Cherrybrook Raging Bulls</h1>
+    <p class="sub" id="match">3-2-1 vote</p>
+    <label for="parent">Parent name</label>
+    <input id="parent" placeholder="Your name">
+    <label for="first">1st — 3 points</label>
+    <select id="first"></select>
+    <label for="second">2nd — 2 points</label>
+    <select id="second"></select>
+    <label for="third">3rd — 1 point</label>
+    <select id="third"></select>
+    <button id="go" disabled>Submit vote</button>
+    <p class="msg" id="msg"></p>
+  </main>
+  <script>
+    var matchNo = '';
+    var opposition = '';
+    function fill(id, players) {
+      var sel = document.getElementById(id);
+      sel.innerHTML = '<option value="">Select player</option>';
+      players.forEach(function (p) {
+        var o = document.createElement('option');
+        o.value = p.shirt;
+        o.textContent = p.shirt + ') ' + p.name;
+        sel.appendChild(o);
+      });
+    }
+    google.script.run.withSuccessHandler(function (data) {
+      fill('first', data.players);
+      fill('second', data.players);
+      fill('third', data.players);
+      matchNo = data.matchNo;
+      opposition = data.opposition;
+      document.getElementById('match').textContent = 'Match ' + matchNo + (opposition ? ' vs ' + opposition : '') + ' · 3-2-1 vote';
+      document.getElementById('go').disabled = false;
+    }).withFailureHandler(function (err) {
+      document.getElementById('msg').className = 'msg err';
+      document.getElementById('msg').textContent = err.message;
+    }).getPlayers();
+
+    document.getElementById('go').onclick = function () {
+      var btn = document.getElementById('go');
+      var msg = document.getElementById('msg');
+      btn.disabled = true;
+      msg.className = 'msg';
+      msg.textContent = 'Saving…';
+      google.script.run.withSuccessHandler(function (res) {
+        msg.className = 'msg ok';
+        msg.textContent = res.message;
+        btn.disabled = false;
+      }).withFailureHandler(function (err) {
+        msg.className = 'msg err';
+        msg.textContent = err.message;
+        btn.disabled = false;
+      }).submitVotes({
+        parentName: document.getElementById('parent').value.trim(),
+        first: document.getElementById('first').value,
+        second: document.getElementById('second').value,
+        third: document.getElementById('third').value,
+        matchNo: matchNo,
+        opposition: opposition
+      });
+    };
+  </script>
+</body>
+</html>
